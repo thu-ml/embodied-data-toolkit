@@ -1,0 +1,48 @@
+{
+    "hierarchy": [
+        {
+            "name": "task",
+            "type": "directory",
+            "pattern": "*",
+            "context_key": "task_name"
+        },
+        {
+            "name": "episode",
+            "type": "filename_match",
+            "primary_source": {
+                "path": "meta/episodes.jsonl",
+                "id_regex": "episodes.jsonl"
+            },
+            "context_key": "ep_meta"
+        }
+    ],
+    "target_structure": [
+        {
+            "name": "{task_name}",
+            "type": "directory",
+            "iterator": "task",
+            "children": [
+                {
+                    "name": ".",
+                    "type": "directory",
+                    "iterator": "episode",
+                    "processor": "expand_lerobot_episodes",
+                    "params": {
+                        "meta_dir": "src://{task_name}/meta",
+                        "videos_dir": "src://{task_name}/videos",
+                        "data_dir": "src://{task_name}/data",
+                        "target_root": "dest://{task_name}",
+                        "cameras": {
+                            "cam_high": "high_image",
+                            "cam_left_wrist": "left_wrist_image",
+                            "cam_right_wrist": "right_wrist_image"
+                        },
+                        "main_video_key": "image",
+                        "action_key": "action"
+                    }
+                }
+            ]
+        }
+    ]
+}
+

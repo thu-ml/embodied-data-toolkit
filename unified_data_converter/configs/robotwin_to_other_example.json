@@ -1,0 +1,146 @@
+{
+    "hierarchy": [
+        {
+            "name": "category",
+            "type": "directory",
+            "pattern": "*",
+            "context_key": "cat_name"
+        },
+        {
+            "name": "variant",
+            "type": "directory",
+            "pattern": "*",
+            "context_key": "var_name"
+        },
+        {
+            "name": "episode",
+            "type": "filename_match",
+            "primary_source": {
+                "path": "video/episode*.mp4",
+                "id_regex": "episode(\\d+)"
+            },
+            "context_key": "raw_id"
+        }
+    ],
+    "target_structure": [
+        {
+            "name": "data",
+            "type": "directory",
+            "children": [
+                {
+                    "name": "{cat_name}",
+                    "type": "directory",
+                    "iterator": "category",
+                    "children": [
+                        {
+                            "name": "{var_name}",
+                            "type": "directory",
+                            "iterator": "variant",
+                            "children": [
+                                {
+                                    "name": "episode_{raw_id}",
+                                    "type": "directory",
+                                    "iterator": "episode",
+                                    "children": [
+                                        {
+                                            "name": "raw_video",
+                                            "type": "directory",
+                                            "children": [
+                                                {
+                                                    "name": "cam_high.mp4",
+                                                    "type": "file",
+                                                    "processor": "copy",
+                                                    "params": {
+                                                        "source": "src://{cat_name}/{var_name}/video/episode{raw_id}.mp4"
+                                                    }
+                                                },
+                                                {
+                                                    "name": "cam_left_wrist.mp4",
+                                                    "type": "file",
+                                                    "processor": "extract_from_hdf5",
+                                                    "params": {
+                                                        "source": "src://{cat_name}/{var_name}/data/episode{raw_id}.hdf5",
+                                                        "key": "observation/left_camera/rgb",
+                                                        "format": "video",
+                                                        "fps": 30,
+                                                        "is_video_bytes": true
+                                                    }
+                                                },
+                                                {
+                                                    "name": "cam_right_wrist.mp4",
+                                                    "type": "file",
+                                                    "processor": "extract_from_hdf5",
+                                                    "params": {
+                                                        "source": "src://{cat_name}/{var_name}/data/episode{raw_id}.hdf5",
+                                                        "key": "observation/right_camera/rgb",
+                                                        "format": "video",
+                                                        "fps": 30,
+                                                        "is_video_bytes": true
+                                                    }
+                                                },
+                                                {
+                                                    "name": "cam_front.mp4",
+                                                    "type": "file",
+                                                    "processor": "extract_from_hdf5",
+                                                    "params": {
+                                                        "source": "src://{cat_name}/{var_name}/data/episode{raw_id}.hdf5",
+                                                        "key": "observation/front_camera/rgb",
+                                                        "format": "video",
+                                                        "fps": 30,
+                                                        "is_video_bytes": true
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "name": "video.mp4",
+                                            "type": "file",
+                                            "processor": "concat_video_3views",
+                                            "params": {
+                                                "cam_high": "dest://data/{cat_name}/{var_name}/episode_{raw_id}/raw_video/cam_high.mp4",
+                                                "cam_left_wrist": "dest://data/{cat_name}/{var_name}/episode_{raw_id}/raw_video/cam_left_wrist.mp4",
+                                                "cam_right_wrist": "dest://data/{cat_name}/{var_name}/episode_{raw_id}/raw_video/cam_right_wrist.mp4"
+                                            }
+                                        },
+                                        {
+                                            "name": "instructions.json",
+                                            "type": "file",
+                                            "processor": "transform_robotwin_instruction",
+                                            "params": {
+                                                "source": "src://{cat_name}/{var_name}/instructions/episode{raw_id}.json",
+                                                "video_path": "dest://data/{cat_name}/{var_name}/episode_{raw_id}/raw_video/cam_high.mp4"
+                                            }
+                                        },
+                                        {
+                                            "name": "endpose.pt",
+                                            "type": "file",
+                                            "processor": "concat_hdf5_fields",
+                                            "params": {
+                                                "source": "src://{cat_name}/{var_name}/data/episode{raw_id}.hdf5",
+                                                "keys": [
+                                                    "endpose/left_endpose",
+                                                    "endpose/right_endpose"
+                                                ],
+                                                "axis": 1,
+                                                "format": "pt"
+                                            }
+                                        },
+                                        {
+                                            "name": "qpos.pt",
+                                            "type": "file",
+                                            "processor": "copy",
+                                            "params": {
+                                                "source": "src://{cat_name}/{var_name}/qpos/episode_{raw_id}_qpos.pt"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+

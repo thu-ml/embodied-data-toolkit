@@ -1,0 +1,78 @@
+{
+    "hierarchy": [
+        {
+            "name": "task",
+            "type": "directory",
+            "pattern": "*",
+            "context_key": "task_name"
+        },
+        {
+            "name": "episode",
+            "type": "filename_match",
+            "primary_source": {
+                "path": "videos/*.mp4",
+                "id_regex": "(\\d+)"
+            },
+            "context_key": "raw_id"
+        }
+    ],
+
+    "target_structure": [
+        {
+            "name": "{task_name}",
+            "type": "directory",
+            "iterator": "task",
+            "children": [
+                {
+                    "name": "episode_{raw_id}",
+                    "type": "directory",
+                    "iterator": "episode",
+                    "children": [
+                        {
+                            "name": "video.mp4",
+                            "type": "file",
+                            "processor": "copy",
+                            "params": {
+                                "source": "src://{task_name}/videos/{raw_id}.mp4"
+                            }
+                        },
+                        {
+                            "name": "qpos.pt",
+                            "type": "file",
+                            "processor": "copy",
+                            "params": {
+                                "source": "src://{task_name}/qpos/{raw_id}.pt"
+                            }
+                        },
+                        {
+                            "name": "instruction.json",
+                            "type": "file",
+                            "processor": "convert_txt_to_instruction",
+                            "params": {
+                                "source": "src://{task_name}/metas/{raw_id}.txt"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "task_meta.json",
+                    "type": "file",
+                    "processor": "summarize_task",
+                    "params": {
+                        "source_videos": {
+                            "from": "source",
+                            "select_iterator": "episode",
+                            "target_file": "src://{task_name}/videos/{raw_id}.mp4"
+                        },
+                        "generated_instructions": {
+                            "from": "destination",
+                            "select_iterator": "episode",
+                            "target_file": "episode_{raw_id}/instruction.json"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
+

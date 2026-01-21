@@ -1,0 +1,54 @@
+opencv-python
+tqdm
+ffmpeg-python
+openai
+torch>=2.7.1
+redis
+h5py
+PyYAML
+numpy
+lerobot==0.3.2
+tyro
+
+# Optional( for Wan T5 encode)
+# easydict
+# ftfy
+# attrs
+# better-profanity
+# boto3
+# decord
+# diffusers
+# einops
+# ftfy
+# fvcore==0.1.5.post20221221
+# huggingface-hub
+# hydra-core
+# imageio[pyav,ffmpeg]==2.37.0
+# iopath
+# ipdb
+# loguru
+# mediapy
+# megatron-core
+# nltk
+# nvidia-ml-py
+# omegaconf
+# opencv-python
+# pandas
+# peft
+# pillow
+# protobuf
+# pycocotools
+# pynvml
+# pyyaml
+# qwen-vl-utils[decord]
+# retinaface-py
+# safetensors
+# scikit-image
+# sentencepiece
+# termcolor
+# tqdm
+# transformers
+# webdataset
+# tensorboard
+# apex
+# flash_attn

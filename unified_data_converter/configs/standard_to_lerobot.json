@@ -1,0 +1,30 @@
+{
+    "hierarchy": [
+        {
+            "name": "task",
+            "type": "directory",
+            "pattern": "*",
+            "context_key": "task_name"
+        }
+    ],
+    "target_structure": [
+        {
+            "name": "{task_name}_lerobot_status.txt",
+            "type": "file",
+            "iterator": "task",
+            "processor": "convert_task_to_lerobot",
+            "params": {
+                "source_task_dir": "src://{task_name}",
+                "repo_id": "lerobot_converted/{task_name}",
+                "robot_type": "aloha",
+                "cameras": {
+                    "image": "video.mp4",
+                    "high_image": "raw_video/cam_high.mp4",
+                    "left_wrist_image": "raw_video/cam_left_wrist.mp4",
+                    "right_wrist_image": "raw_video/cam_right_wrist.mp4"
+                }
+            }
+        }
+    ]
+}
+

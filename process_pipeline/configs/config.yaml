@@ -1,0 +1,52 @@
+global:
+  src: "/path/to/src/dir"
+  dest: "/path/to/dest/dir"
+  workers: 32
+  enable_local_status: true # .status.json file to record the status of each episode
+  mode: "process" # Options: "process", "clear"
+
+redis:
+  enabled: true
+  host: "localhost"
+  port: 6379
+  db: 1  # Using DB 1 to isolate this project
+
+pipeline_steps:
+  - name: validation
+    params:
+      perform: true
+
+  - name: structure
+    params:
+      fast_video_copy: true
+
+  - name: concat
+    params:
+      fps: 30
+
+  - name: caption
+    params:
+      api_key: "sk-**********************************"
+      api_base: "https://api.openai.com/v1"
+      same_caption: true # become task-level processor
+      use_task_name: true # If true, use task name as instruction base
+      system_prompt: "The whole scene is in a realistic, industrial art style with three views: a fixed rear camera, a movable left arm camera, and a movable right arm camera. The aloha robot is currently performing the following task: " # Prefix for all instructions
+
+  - name: trim
+    params:
+      threshold: 0.01
+      video_trim_mode: "fast" # "ffmpeg" or "fast"
+      video_trim_fps: 30
+
+  - name: stat # dataset-level processor
+    params:
+      output_path: "dataset_stats.json"
+      dataset_name: "dataset_name" # the dataset_name will be used to name the key in dataset_stats.json file
+
+  # Post Processors can be added here
+  - name: t5_wan
+    params:
+      overwrite: true
+      wan_dir: "/path/to/Wan2.2" # Wan2.2 repo directory for directly calling well-written function
+      cache_dir: "/path/to/Wan2.2-TI2V-5B" # Cache directory for Wan2.2 model
+      device: "cuda"

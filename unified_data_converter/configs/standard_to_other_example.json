@@ -1,0 +1,123 @@
+{
+    "hierarchy": [
+        {
+            "name": "task",
+            "type": "directory",
+            "pattern": "*",
+            "context_key": "task_name"
+        },
+        {
+            "name": "episode",
+            "type": "directory",
+            "pattern": "episode_*",
+            "id_regex": "(\\d+)",
+            "context_key": "ep_idx"
+        }
+    ],
+    "target_structure": [
+        {
+            "name": "{task_name}",
+            "type": "directory",
+            "iterator": "task",
+            "children": [
+                {
+                    "name": "eef",
+                    "type": "directory",
+                    "iterator": "episode",
+                    "children": [
+                        {
+                            "name": "{ep_idx}.pt",
+                            "type": "file",
+                            "processor": "copy",
+                            "params": {
+                                "source": "src://{task_name}/episode_{ep_idx}/endpose.pt"
+                            }
+                        }
+                    ]
+                },
+                {
+                                            "name": "videos",
+                                            "type": "directory",
+                                            "iterator": "episode",
+                                            "children": [
+                                                {
+                                                    "name": "{ep_idx}.mp4",
+                                                    "type": "file",
+                                                    "processor": "copy",
+                                                    "params": {
+                                                        "source": "src://{task_name}/episode_{ep_idx}/video.mp4"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "name": "qpos",
+                                            "type": "directory",
+                                            "iterator": "episode",
+                                            "children": [
+                                                {
+                                                    "name": "{ep_idx}.pt",
+                                                    "type": "file",
+                                                    "processor": "copy",
+                                                    "params": {
+                                                        "source": "src://{task_name}/episode_{ep_idx}/qpos.pt"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "name": "instructions",
+                                            "type": "directory",
+                                            "children": [
+                                                {
+                                                    "name": "{task_name}.txt",
+                                                    "type": "file",
+                                                    "processor": "extract_first_instruction_to_txt",
+                                                    "params": {
+                                                        "source": "src://{task_name}/episode_0/instructions.json"
+                                                    }
+                                                },
+                                                {
+                                                    "name": "{task_name}.pt",
+                                                    "type": "file",
+                                                    "processor": "copy",
+                                                    "params": {
+                                                        "source": "src://{task_name}/episode_0/umt5_wan/instruction_0.pt"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "name": "metas",
+                                            "type": "directory",
+                                            "iterator": "episode",
+                                            "children": [
+                                                {
+                                                    "name": "{ep_idx}.txt",
+                                                    "type": "file",
+                                                    "processor": "extract_first_instruction_to_txt",
+                                                    "params": {
+                                                        "source": "src://{task_name}/episode_0/instructions.json"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "name": "umt5_wan",
+                                            "type": "directory",
+                                            "iterator": "episode",
+                                            "children": [
+                                                {
+                                                    "name": "{ep_idx}.pt",
+                                                    "type": "file",
+                                                    "processor": "copy",
+                                                    "params": {
+                                                        "source": "src://{task_name}/episode_{ep_idx}/umt5_wan/instruction_0.pt"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                    ]
+        }
+    ]
+}
