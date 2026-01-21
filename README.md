@@ -80,9 +80,30 @@ bash scripts/run_process_pipeline.sh
 
 ---
 
-## 📂 Standard Data Format
+## 📂 Data Formats
 
-The toolkit assumes a standardized directory structure for trajectory data to ensure compatibility between different processors and models. This format is the target of the **Unified Data Converter** and the input for the **Process Pipeline**.
+### 1. Process Pipeline Input Format
+
+```text
+dataset_root/
+├── folder_1/
+│   └── ...
+└── folder_n/
+    └── {task_name}/
+        ├── episode_0/
+        │   ├── episode_0_cam_front.mp4      # Front view (Deprecated)
+        │   ├── episode_0_cam_high.mp4       # High-angle view
+        │   ├── episode_0_cam_left_wrist.mp4  # Left wrist camera
+        │   ├── episode_0_cam_right_wrist.mp4 # Right wrist camera
+        │   ├── episode_0_qpos.pt            # Joint positions (T, 14)
+        │   └── episode_0_tts.mp4            # Audio/TTS (Optional)
+        ├── episode_1/
+        │   └── ...
+        └── ...
+```
+
+### 2. Standard Data Format (Pipeline Output)
+The **Process Pipeline** processes the above input (trimming, concatenating, captioning) and generates the final standardized structure for training.
 
 ```text
 {task_name}/
