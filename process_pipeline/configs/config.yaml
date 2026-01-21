@@ -30,7 +30,7 @@ pipeline_steps:
       api_base: "https://api.openai.com/v1"
       same_caption: true # become task-level processor
       use_task_name: true # If true, use task name as instruction base
-      system_prompt: "The whole scene is in a realistic, industrial art style with three views: a fixed rear camera, a movable left arm camera, and a movable right arm camera. The aloha robot is currently performing the following task: " # Prefix for all instructions
+      system_prompt: "Prefix for all instructions: " # Prefix for all instructions
 
   - name: trim
     params:
