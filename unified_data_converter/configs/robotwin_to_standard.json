@@ -9,7 +9,7 @@
         {
             "name": "variant",
             "type": "directory",
-            "pattern": "*",
+            "pattern": "aloha-agilex_randomized_500",
             "context_key": "var_name"
         },
         {
@@ -125,9 +125,14 @@
                                         {
                                             "name": "qpos.pt",
                                             "type": "file",
-                                            "processor": "copy",
+                                            "processor": "concat_hdf5_fields",
                                             "params": {
-                                                "source": "src://{cat_name}/{var_name}/qpos/episode_{raw_id}_qpos.pt"
+                                                "source": "src://{cat_name}/{var_name}/data/episode{raw_id}.hdf5",
+                                                "keys": [
+                                                    "joint_action/vector"
+                                                ],
+                                                "axis": 1,
+                                                "format": "pt"
                                             }
                                         }
                                     ]
