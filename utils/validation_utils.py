@@ -25,7 +25,6 @@ def get_video_frame_count(path):
         with imageio.get_reader(path, "ffmpeg") as vid:
             return vid.count_frames()
     except Exception:
-        # Fallback to cv2 if imageio fails or is slow
         try:
             cap = cv2.VideoCapture(str(path))
             if not cap.isOpened():
@@ -44,10 +43,11 @@ def is_video_black_screen(path, sample_count=10, threshold=10):
     try:
         cap = cv2.VideoCapture(str(path))
         if not cap.isOpened():
-            return False # Cannot open, so technically not "black screen", but invalid. Handled by existence check.
+            return False
         
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         if frame_count <= 0:
+            cap.release()
             return False
             
         indices = np.linspace(0, frame_count-1, sample_count, dtype=int)
@@ -58,8 +58,6 @@ def is_video_black_screen(path, sample_count=10, threshold=10):
             ret, frame = cap.read()
             if not ret:
                 continue
-            
-            # Check mean brightness
             if np.mean(frame) > threshold:
                 is_black = False
                 break
@@ -68,6 +66,32 @@ def is_video_black_screen(path, sample_count=10, threshold=10):
         return is_black
     except Exception:
         return False
+
+def is_video_corrupted(path):
+    """
+    Check if a video file is corrupted or cannot be opened.
+    Tries to open and read a few frames. Returns True if corrupted.
+    """
+    try:
+        cap = cv2.VideoCapture(str(path))
+        if not cap.isOpened():
+            return True
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if frame_count <= 0:
+            cap.release()
+            return True
+        # Try reading first, middle, and last frame
+        test_indices = [0, frame_count // 2, max(0, frame_count - 1)]
+        read_ok = 0
+        for idx in test_indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ret, frame = cap.read()
+            if ret and frame is not None:
+                read_ok += 1
+        cap.release()
+        return read_ok == 0
+    except Exception:
+        return True
 
 def check_tensor_values_range(data, abs_threshold=10):
     """
@@ -83,7 +107,6 @@ def check_tensor_values_range(data, abs_threshold=10):
 def check_tensor_static_zeros(data, run_length=100, dims=7):
     """
     Check if there are long runs of zeros in first/last N dimensions.
-    Assumes data shape (T, D) or (T, 2*D) typically.
     Returns True if VALID, False if INVALID (has static zeros).
     """
     if not torch.is_tensor(data) or data.numel() == 0:
@@ -96,22 +119,15 @@ def check_tensor_static_zeros(data, run_length=100, dims=7):
         
     T, D = series.shape
     if T < run_length:
-        return True # Too short to fail this check
+        return True
         
-    # Check first 'dims'
     if D >= dims:
         left = series[:, :dims]
         if _has_zero_run(left, run_length):
             return False
             
-    # Check last 'dims' (if D is large enough, e.g. 14 for dual arm)
-    # Logic: usually structure is [left_arm, right_arm]. 
-    # If D=14, mid=7. series[:, 7:] is right arm.
-    # We can just split by half if D is even and >= 2*dims
-    
     mid = D // 2
     if D >= 2 * dims:
-        # Assuming dual arm structure, check second arm
         right = series[:, mid:mid+dims]
         if _has_zero_run(right, run_length):
             return False
@@ -120,23 +136,86 @@ def check_tensor_static_zeros(data, run_length=100, dims=7):
 
 def _has_zero_run(tensor_slice, run_length):
     """Helper to find run of zeros in any dimension of shape (T, D)."""
-    # Create mask of zeros
     zero_mask = (tensor_slice == 0)
-    
-    # We need to find if ANY column has `run_length` consecutive True
-    # Can use convolution or simple loop
     for d in range(tensor_slice.shape[1]):
         col = zero_mask[:, d]
-        # Find consecutive trues
-        # Convert to int, diff to find edges... or just a simple counter loop for robustness
         count = 0
-        max_run = 0
         for val in col:
             if val:
                 count += 1
-                max_run = max(max_run, count)
+                if count >= run_length:
+                    return True
             else:
                 count = 0
-            if max_run >= run_length:
-                return True
     return False
+
+
+def _has_repeat_run(block, run_len):
+    """
+    Check if a (T, dims) block has run_len+ consecutive identical rows.
+    Treats all dims as a single vector: row t == row t-1 means repeat.
+    """
+    diffs = (block[1:] - block[:-1]).abs().sum(dim=1)
+    count = 0
+    for d in diffs:
+        if d.item() == 0.0:
+            count += 1
+            if count >= run_len:
+                return True
+        else:
+            count = 0
+    return False
+
+
+def check_tensor_static_repeat(data, run_length=100, dims=7):
+    """
+    Check if first/last N dims (as a group) have >run_length consecutive
+    identical rows. For dual-arm (D>=14), checks both arm groups.
+    Returns True if VALID, False if INVALID.
+    """
+    if not torch.is_tensor(data) or data.numel() == 0:
+        return False
+
+    if data.dim() == 1:
+        series = data.unsqueeze(1)
+    else:
+        series = data.reshape(data.shape[0], -1).float()
+
+    T, D = series.shape
+    if T <= run_length:
+        return True
+
+    if D >= dims and _has_repeat_run(series[:, :dims], run_length):
+        return False
+
+    mid = D // 2
+    if D >= 2 * dims and _has_repeat_run(series[:, mid:mid + dims], run_length):
+        return False
+
+    return True
+
+
+def check_tensor_group_all_zeros(data, dims=7):
+    """
+    Check if first/last N dims are entirely zero across ALL timesteps.
+    For dual-arm (D>=14), checks both arm groups independently.
+    Returns True if VALID, False if INVALID (all zeros detected).
+    """
+    if not torch.is_tensor(data) or data.numel() == 0:
+        return False
+
+    if data.dim() == 1:
+        series = data.unsqueeze(1)
+    else:
+        series = data.reshape(data.shape[0], -1)
+
+    T, D = series.shape
+
+    if D >= dims and (series[:, :dims] == 0).all().item():
+        return False
+
+    mid = D // 2
+    if D >= 2 * dims and (series[:, mid:mid + dims] == 0).all().item():
+        return False
+
+    return True
